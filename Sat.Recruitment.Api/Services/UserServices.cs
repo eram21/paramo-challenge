@@ -1,11 +1,19 @@
-﻿using Sat.Recruitment.Api.Models;
+﻿using Sat.Recruitment.Api.Data;
+using Sat.Recruitment.Api.Models;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Sat.Recruitment.Api.Services
 {
     public class UserServices : IUserServices
     {
+        private readonly IRepository _repository;
+        public UserServices(IRepository repository)
+        {
+            _repository = repository;
+        }
+
         private User MapUserDtoToUser(UserDto userDTO)
         {
             var newUser = new User
@@ -17,140 +25,103 @@ namespace Sat.Recruitment.Api.Services
                 Money = userDTO.Money
             };
             
-            Enum.TryParse(userDTO.UserType, out UserType type);
+            var isEnumParse = Enum.TryParse(userDTO.UserType, true, out UserType type);
+            
+            if (!isEnumParse)
+                throw new ValidationException($"We have a problem... The UserType ({userDTO.UserType}) is invalid, try with: Normal, SuperUser or Premium.");
+
             newUser.Type = type;
 
-            newUser.Email = Utils.Utils.NormalizeEmail(newUser.Email);
-
             return newUser;
-        }       
+        }
+        
+        private void CalculateUserMoney(User user)
+        {
+            switch (user.Type)
+            {
+                case UserType.Normal:
+                    if (user.Money > 100)
+                    {
+                        var percentage = Convert.ToDecimal(0.12);
+                        //If new user is normal and has more than USD100
+                        var gif = user.Money * percentage;
+                        user.Money += gif;
+                    }
+                    else if (user.Money > 10)
+                    {
+                        var percentage = Convert.ToDecimal(0.8);
+                        var gif = user.Money * percentage;
+                        user.Money += gif;
+                    }
+                    break;
+                case UserType.SuperUser:
+                    if (user.Money > 100)
+                    {
+                        var percentage = Convert.ToDecimal(0.20);
+                        var gif = user.Money * percentage;
+                        user.Money += gif;
+                    }
+                    break;
+                case UserType.Premium:
+                    if (user.Money > 100)
+                    {
+                        var gif = user.Money * 2;
+                        user.Money += gif;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private async Task CheckForDupliatesUsers(User user)
+        {
+            var users = await _repository.GetAllUsers();
+            string errors = string.Empty;
+            
+            var normalizeEmail = Utils.Utils.NormalizeEmail(user.Email);
+            if (users.Exists(userFile => userFile.Email.Equals(normalizeEmail, StringComparison.InvariantCultureIgnoreCase)))
+                errors += $"This email ({user.Email}) is duplicate, please try with another. {Environment.NewLine}";
+
+            if (users.Exists(userFile => userFile.Phone.Equals(user.Phone, StringComparison.InvariantCultureIgnoreCase)))
+                errors += $"This phone ({user.Phone}) is duplicate, please try with another. {Environment.NewLine}";
+
+            if (users.Exists(userFile => 
+                    userFile.Name.Equals(user.Name, StringComparison.InvariantCultureIgnoreCase) &&
+                    userFile.Address.Equals(user.Address, StringComparison.InvariantCultureIgnoreCase)))
+                errors += $"This name ({user.Name}) and address ({user.Address}) are duplicate, please try with another. {Environment.NewLine}";
+
+            if (!string.IsNullOrWhiteSpace(errors))
+                throw new ValidationException(errors);
+        }
 
         public async Task<Result> Create(UserDto userDto)
         {
-            //return null;
+            #region MapUserDtoToUser
+
             var user = MapUserDtoToUser(userDto);
 
+            #endregion
+
             #region Calculate Money
-            if (newUser.UserType == "Normal")
-            {
-                if (decimal.Parse(money) > 100)
-                {
-                    var percentage = Convert.ToDecimal(0.12);
-                    //If new user is normal and has more than USD100
-                    var gif = decimal.Parse(money) * percentage;
-                    newUser.Money = newUser.Money + gif;
-                }
-                if (decimal.Parse(money) < 100)
-                {
-                    if (decimal.Parse(money) > 10)
-                    {
-                        var percentage = Convert.ToDecimal(0.8);
-                        var gif = decimal.Parse(money) * percentage;
-                        newUser.Money = newUser.Money + gif;
-                    }
-                }
-            }
-            if (newUser.UserType == "SuperUser")
-            {
-                if (decimal.Parse(money) > 100)
-                {
-                    var percentage = Convert.ToDecimal(0.20);
-                    var gif = decimal.Parse(money) * percentage;
-                    newUser.Money = newUser.Money + gif;
-                }
-            }
-            if (newUser.UserType == "Premium")
-            {
-                if (decimal.Parse(money) > 100)
-                {
-                    var gif = decimal.Parse(money) * 2;
-                    newUser.Money = newUser.Money + gif;
-                }
-            }
+
+            CalculateUserMoney(user);
+
             #endregion
 
             #region Business Validations Check For Duplicates
 
-            #region Open Repository
-            var reader = ReadUsersFromFile();
+            await CheckForDupliatesUsers(user);
 
-            //Normalize email
-
-
-            while (reader.Peek() >= 0)
-            {
-                var line = reader.ReadLineAsync().Result;
-                var user = new User
-                {
-                    Name = line.Split(',')[0].ToString(),
-                    Email = line.Split(',')[1].ToString(),
-                    Phone = line.Split(',')[2].ToString(),
-                    Address = line.Split(',')[3].ToString(),
-                    UserType = line.Split(',')[4].ToString(),
-                    Money = decimal.Parse(line.Split(',')[5].ToString()),
-                };
-                _users.Add(user);
-            }
-            reader.Close();
             #endregion
-
-            try
-            {
-                var isDuplicated = false;
-                foreach (var user in _users)
-                {
-                    if (user.Email == newUser.Email
-                        ||
-                        user.Phone == newUser.Phone)
-                    {
-                        isDuplicated = true;
-                    }
-                    else if (user.Name == newUser.Name)
-                    {
-                        if (user.Address == newUser.Address)
-                        {
-                            isDuplicated = true;
-                            throw new Exception("User is duplicated");
-                        }
-
-                    }
-                }
-
-                if (!isDuplicated)
-                {
-                    Debug.WriteLine("User Created");
-
-                    return new Result()
-                    {
-                        IsSuccess = true,
-                        Errors = "User Created"
-                    };
-                }
-                else
-                {
-                    Debug.WriteLine("The user is duplicated");
-
-                    return new Result()
-                    {
-                        IsSuccess = false,
-                        Errors = "The user is duplicated"
-                    };
-                }
-            }
-            catch
-            {
-                Debug.WriteLine("The user is duplicated");
-                return new Result()
-                {
-                    IsSuccess = false,
-                    Errors = "The user is duplicated"
-                };
-            }
-        }
-        #endregion
 
             #region Add User to Repository
 
-        #endregion
+            _repository.InserUser(user);
+
+            #endregion
+
+            return Result.Ok("User create.");
+        }
     }
 }
