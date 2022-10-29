@@ -10,6 +10,7 @@ using Xunit;
 namespace Sat.Recruitment.Test
 {
     [CollectionDefinition("Tests", DisableParallelization = true)]
+    //moq c#
     public class UnitTest1
     {
         [Fact]
