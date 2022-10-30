@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Sat.Recruitment.Api.Models;
 using Sat.Recruitment.Api.Services;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Sat.Recruitment.Api.Controllers
@@ -22,7 +23,7 @@ namespace Sat.Recruitment.Api.Controllers
         /// <param name="userDTO"></param>
         /// <returns>Result</returns>
         [HttpPost]
-        public async Task<Result> CreateUser([FromBody] UserDto userDTO)
+        public async Task<Result> CreateUser([Required][FromBody] UserDto userDTO)
         {
             try
             {

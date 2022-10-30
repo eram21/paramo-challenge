@@ -13,7 +13,12 @@ namespace Sat.Recruitment.Api.Services
         {
             _repository = repository;
         }
-         
+        
+        /// <summary>
+        /// Map UserDto (User Request) to User (In repository).
+        /// </summary>
+        /// <param name="userDTO"></param>
+        /// <returns></returns>
         private User MapUserDtoToUser(UserDto userDTO)
         {
             var newUser = new User
@@ -34,8 +39,12 @@ namespace Sat.Recruitment.Api.Services
 
             return newUser;
         }
-        
-        private void CalculateUserMoney(User user)
+
+        /// <summary>
+        /// Calculate user money, based on user type.
+        /// </summary>
+        /// <param name="user"></param>
+        public User CalculateUserMoney(User user)
         {
             switch (user.Type)
             {
@@ -70,8 +79,15 @@ namespace Sat.Recruitment.Api.Services
                     }
                     break;
             }
+
+            return user;
         }
 
+        /// <summary>
+        /// Validations for check duplicates users in repository.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         private async Task<Result> CheckForDuplicatesUsers(User user)
         {
             var users = await _repository.GetAllUsers();

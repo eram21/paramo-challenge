@@ -13,6 +13,10 @@ namespace Sat.Recruitment.Test
     [CollectionDefinition("Tests", DisableParallelization = true)]
     public class UnitTest1
     {
+        /// <summary>
+        /// Verifying UsersController it's OK.
+        /// </summary>
+        /// <returns></returns>
         [Fact]
         public async Task TestUserControllerOK()
         {
@@ -29,6 +33,10 @@ namespace Sat.Recruitment.Test
             Assert.Equal("User Created", result.Messages);
         }
 
+        /// <summary>
+        /// Verifying UsersController when Throws Exception.
+        /// </summary>
+        /// <returns></returns>
         [Fact]
         public async Task TestUserControllerThrowsException()
         {
@@ -45,6 +53,10 @@ namespace Sat.Recruitment.Test
             Assert.Equal("Test", result.Messages);
         }
 
+        /// <summary>
+        /// Verifying Create User in UserServices it's OK.
+        /// </summary>
+        /// <returns></returns>
         [Fact]
         public async Task TestUserServicesCreateOK()
         {
@@ -74,7 +86,10 @@ namespace Sat.Recruitment.Test
             Assert.Equal("User created.", result.Messages);
         }
 
-
+        /// <summary>
+        /// Verifying Create User in UserServices Fail when Email already exists.
+        /// </summary>
+        /// <returns></returns>
         [Fact]
         public async Task TestUserServicesCreateEmailDuplicateFail()
         {
@@ -110,7 +125,65 @@ namespace Sat.Recruitment.Test
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Equal("This email (Agustina@gmail.com) already exists, please try another. ", result.Messages);
+            Assert.Equal($"This email (Agustina@gmail.com) already exists, please try another. {Environment.NewLine}", result.Messages);
+        }
+
+        /// <summary>
+        /// Verifying the money calculation of the normal user over 100 USD.
+        /// </summary>
+        [Fact]
+        public void TestUserServicesCalculateNormalUserMoneyOver100USD()
+        {
+            // Arrange
+            var repository = new Mock<IRepository>();
+
+            repository.Setup(x => x.GetAllUsers()).ReturnsAsync(new List<User>());
+            var user = new User
+            {
+                Name = "Agustina",
+                Email = "Agustina@gmail.com",
+                Address = "Av. Juan G",
+                Phone = "+349 1122354215",
+                Type = UserType.Normal,
+                Money = 110
+            };
+
+            var userServices = new UserServices(repository.Object);
+
+            // Act
+            var result = userServices.CalculateUserMoney(user);
+
+            // Assert
+            Assert.Equal((decimal)123.20, user.Money);
+        }
+
+        /// <summary>
+        /// Verifying the money calculation of the normal user over 10 USD.
+        /// </summary>
+        [Fact]
+        public void TestUserServicesCalculateNormalUserMoneyOver10USD()
+        {
+            // Arrange
+            var repository = new Mock<IRepository>();
+
+            repository.Setup(x => x.GetAllUsers()).ReturnsAsync(new List<User>());
+            var user = new User
+            {
+                Name = "Agustina",
+                Email = "Agustina@gmail.com",
+                Address = "Av. Juan G",
+                Phone = "+349 1122354215",
+                Type = UserType.Normal,
+                Money = 50
+            };
+
+            var userServices = new UserServices(repository.Object);
+
+            // Act
+            var result = userServices.CalculateUserMoney(user);
+
+            // Assert
+            Assert.Equal((decimal)90, user.Money);
         }
     }
 }

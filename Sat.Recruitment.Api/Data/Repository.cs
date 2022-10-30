@@ -10,25 +10,21 @@ namespace Sat.Recruitment.Api.Data
     public class Repository : IRepository
     {
         private IConfiguration _configuration;
+        private readonly string _pathUserFile;
         public Repository(IConfiguration configuration)
         {
             _configuration = configuration;
-        }
-        private StreamReader ReadUsersFromFile()
-        {
-            var path = Directory.GetCurrentDirectory() + _configuration["PathUserFile"];
-
-            FileStream fileStream = new FileStream(path, FileMode.Open);
-
-            StreamReader reader = new StreamReader(fileStream);
-
-            return reader;
+            _pathUserFile = Directory.GetCurrentDirectory() + _configuration["PathUserFile"];
         }
 
+        /// <summary>
+        /// Get all users from users file text.
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<User>> GetAllUsers()
         {
             var _users = new List<User>();
-            var reader = ReadUsersFromFile();
+            var reader = Utils.Utils.ReadFromFile(_pathUserFile);
 
             while (reader.Peek() >= 0)
             {
@@ -52,11 +48,15 @@ namespace Sat.Recruitment.Api.Data
             return _users;
         }
 
+        /// <summary>
+        /// Insert user into file text.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         public async Task InsertUser(User user)
         {
-            var path = Directory.GetCurrentDirectory() + _configuration["PathUserFile"];
             string[] userArray = { user.Name, user.Email, user.Phone, user.Address, user.Type.ToString(), user.Money.ToString().Replace(",",".") };
-            await File.AppendAllTextAsync(path, string.Join(',', userArray) + Environment.NewLine);
+            await File.AppendAllTextAsync(_pathUserFile, string.Join(',', userArray) + Environment.NewLine);
         }
     }
 }

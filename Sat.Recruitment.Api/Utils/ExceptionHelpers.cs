@@ -6,7 +6,7 @@ namespace Sat.Recruitment.Api.Utils
 {
     public static class ExceptionHelpers
     {
-        //https://stackoverflow.com/a/9314733
+        //Retrieved from the following URL: https://stackoverflow.com/a/9314733
         private static IEnumerable<TSource> FromHierarchy<TSource>(
             this TSource source,
             Func<TSource, TSource> nextItem,
@@ -30,7 +30,7 @@ namespace Sat.Recruitment.Api.Utils
         {
             var messages = exception.FromHierarchy(ex => ex.InnerException)
                 .Select(ex => ex.Message);
-            return String.Join(Environment.NewLine, messages);
+            return string.Join(Environment.NewLine, messages);
         }
     }
 }
