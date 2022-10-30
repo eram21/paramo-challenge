@@ -16,6 +16,11 @@ namespace Sat.Recruitment.Api.Controllers
             _userServices = userServices;
         }
 
+        /// <summary>
+        /// Create a new user.
+        /// </summary>
+        /// <param name="userDTO"></param>
+        /// <returns>Result</returns>
         [HttpPost]
         public async Task<Result> CreateUser([FromBody] UserDto userDTO)
         {

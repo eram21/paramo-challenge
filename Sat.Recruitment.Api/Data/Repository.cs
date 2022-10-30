@@ -52,12 +52,11 @@ namespace Sat.Recruitment.Api.Data
             return _users;
         }
 
-        public void InserUser(User user)
+        public async Task InsertUser(User user)
         {
             var path = Directory.GetCurrentDirectory() + _configuration["PathUserFile"];
             string[] userArray = { user.Name, user.Email, user.Phone, user.Address, user.Type.ToString(), user.Money.ToString().Replace(",",".") };
-          //  Agustina,Agustina@gmail.com,+534645213542,Garay y Otra Calle,SuperUser,112234
-            File.AppendAllText(path, string.Join(',', userArray) + Environment.NewLine);
+            await File.AppendAllTextAsync(path, string.Join(',', userArray) + Environment.NewLine);
         }
     }
 }

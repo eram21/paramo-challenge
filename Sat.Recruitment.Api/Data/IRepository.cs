@@ -7,6 +7,6 @@ namespace Sat.Recruitment.Api.Data
     public interface IRepository
     {
         Task<List<User>> GetAllUsers();
-        void InserUser(User user);
+        Task InsertUser(User user);
     }
 }

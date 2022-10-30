@@ -13,7 +13,7 @@ namespace Sat.Recruitment.Api.Services
         {
             _repository = repository;
         }
-
+         
         private User MapUserDtoToUser(UserDto userDTO)
         {
             var newUser = new User
@@ -47,7 +47,7 @@ namespace Sat.Recruitment.Api.Services
                         var gif = user.Money * percentage;
                         user.Money += gif;
                     }
-                    else if (user.Money > 10)
+                    else if (user.Money > 10) //I assumed that 100 applies within this condition.
                     {
                         var percentage = Convert.ToDecimal(0.8);
                         var gif = user.Money * percentage;
@@ -69,32 +69,37 @@ namespace Sat.Recruitment.Api.Services
                         user.Money += gif;
                     }
                     break;
-                default:
-                    break;
             }
         }
 
-        private async Task CheckForDupliatesUsers(User user)
+        private async Task<Result> CheckForDuplicatesUsers(User user)
         {
             var users = await _repository.GetAllUsers();
             string errors = string.Empty;
             
             var normalizeEmail = Utils.Utils.NormalizeEmail(user.Email);
             if (users.Exists(userFile => userFile.Email.Equals(normalizeEmail, StringComparison.InvariantCultureIgnoreCase)))
-                errors += $"This email ({user.Email}) is duplicate, please try with another. {Environment.NewLine}";
+                errors += $"This email ({user.Email}) already exists, please try another. {Environment.NewLine}";
 
             if (users.Exists(userFile => userFile.Phone.Equals(user.Phone, StringComparison.InvariantCultureIgnoreCase)))
-                errors += $"This phone ({user.Phone}) is duplicate, please try with another. {Environment.NewLine}";
+                errors += $"This phone ({user.Phone}) already exists, please try another. {Environment.NewLine}";
 
             if (users.Exists(userFile => 
                     userFile.Name.Equals(user.Name, StringComparison.InvariantCultureIgnoreCase) &&
                     userFile.Address.Equals(user.Address, StringComparison.InvariantCultureIgnoreCase)))
-                errors += $"This name ({user.Name}) and address ({user.Address}) are duplicate, please try with another. {Environment.NewLine}";
+                errors += $"This name ({user.Name}) and address ({user.Address}) already exist, please try another. {Environment.NewLine}";
 
             if (!string.IsNullOrWhiteSpace(errors))
-                throw new ValidationException(errors);
+                return Result.Error(errors);
+
+            return Result.Ok();
         }
 
+        /// <summary>
+        /// Create a new user.
+        /// </summary>
+        /// <param name="userDto"></param>
+        /// <returns>Result</returns>
         public async Task<Result> Create(UserDto userDto)
         {
             #region MapUserDtoToUser
@@ -109,19 +114,22 @@ namespace Sat.Recruitment.Api.Services
 
             #endregion
 
-            #region Business Validations Check For Duplicates
+            #region Check For Duplicates
 
-            await CheckForDupliatesUsers(user);
+            var result = await CheckForDuplicatesUsers(user);
+            
+            if (!result.IsSuccess)
+                return result;
 
             #endregion
 
             #region Add User to Repository
 
-            _repository.InserUser(user);
+            await _repository.InsertUser(user);
 
             #endregion
 
-            return Result.Ok("User create.");
+            return Result.Ok("User created.");
         }
     }
 }
